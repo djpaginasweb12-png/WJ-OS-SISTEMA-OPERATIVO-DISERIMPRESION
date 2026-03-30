@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WJ | SISTEMA DE CONTROL DE TRABAJOS</title>
+    
+    <!-- ========================================================================= -->
+    <!-- MODIFICAR AQUI: LOGO PESTAÑA DEL NAVEGADOR (FAVICON)                      -->
+    <!-- Cambia el href por la ruta de tu nuevo icono                              -->
+    <!-- ========================================================================= -->
+    <link rel="icon" href="img/LOGO-WJ.png" type="image/png">
+
+    <script>
+        // Protección del sistema (Click derecho, F12, etc)
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) { return false; }
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) { return false; }
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) { return false; }
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) { return false; }
+        }
+        window.onerror = function(msg, url, line) { console.error("System Error:", msg, line); return false; };
+    </script>
+
+    <style>
+        /* ========================================================================= */
+        /* MODIFICAR AQUI: COLORES PRINCIPALES DEL SISTEMA (CSS)                     */
+        /* Cambia los códigos hexadecimales (#) por los colores de tu marca          */
+        /* ========================================================================= */
+        :root {
+            --bg-body: #050505;                 /* Fondo general del sistema oscuro */
+            --bg-panel: rgba(20, 20, 23, 0.95); /* Fondo de las columnas/paneles */
+            --primary: #e11d48;                 /* Color primario (Rojo/Rosa) */
+            --accent: #0ea5e9;                  /* Color de acento (Azul) */
+            --success: #10b981;                 /* Color de éxito/pagado (Verde) */
+            --warning: #f59e0b;                 /* Color advertencia (Amarillo/Naranja) */
+            --purple: #8b5cf6;                  /* Color maquila (Morado) */
+            --text-main: #ffffff;               /* Color de texto principal (Blanco) */
+            --text-muted: #9ca3af;              /* Color de texto secundario (Gris) */
+            --border: rgba(255, 255, 255, 0.1); /* Color de los bordes sutiles */
+            --font-tech: 'Segoe UI', 'Roboto', sans-serif;
+        }
+        /* ========================================================================= */
+
+        * { box-sizing: border-box; font-family: var(--font-tech); user-select: none; }
+        body { background-color: var(--bg-body); color: var(--text-main); margin: 0; height: 100vh; overflow: hidden; position: relative; }
+
+        /* LOGIN */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 5, 0.6); backdrop-filter: blur(15px); z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease, transform 0.5s ease; }
+        .login-box { width: 90%; max-width: 400px; padding: 40px; background: rgba(20, 20, 25, 0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.8); position: relative; overflow: hidden; }
+        .login-box::before { content:''; position: absolute; top:0; left:0; width:100%; height:4px; background: linear-gradient(90deg, transparent, var(--primary), transparent); }
+        .login-logo { width: 60px; height: auto; margin-bottom: 20px; animation: heartbeat 4s infinite ease-in-out; cursor: pointer; }
+        .login-title { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 5px; }
+        .login-subtitle { font-size: 0.8rem; color: var(--text-muted); letter-spacing: 4px; margin-bottom: 40px; text-transform: uppercase; }
+        .login-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 15px; border-radius: 12px; color: white; margin-bottom: 15px; font-size: 1rem; text-align: center; transition: 0.3s; }
+        .login-input:focus { border-color: var(--accent); outline: none; background: rgba(0,0,0,0.5); }
+        .login-input.master-mode { border-color: var(--primary); box-shadow: 0 0 15px rgba(225, 29, 72, 0.3); }
+        .btn-login { width: 100%; padding: 15px; border-radius: 12px; border: none; background: linear-gradient(45deg, #111, #222); color: white; font-weight: bold; cursor: pointer; border: 1px solid #333; transition: 0.3s; margin-top: 10px; }
+        .btn-login:hover { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 20px rgba(225, 29, 72, 0.4); }
+
+        /* LAUNCHER */
+        #launcher-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 0; pointer-events: none; }
+        .ghost-logo { position: absolute; z-index: -1; opacity: 0.15; filter: blur(2px); transform: scale(1.2); display: flex; justify-content: center; align-items: center; width: 100%; }
+        .ghost-logo img { width: 35vw; max-width: 500px; filter: grayscale(100%); }
+        .widget-clock { text-align: center; z-index: 1; text-shadow: 0 10px 30px rgba(0,0,0,0.9); margin-top: -50px; }
+        .time-display { font-size: clamp(4rem, 10vw, 9rem); font-weight: 100; letter-spacing: -5px; line-height: 1; font-variant-numeric: tabular-nums; }
+        .date-display { font-size: clamp(1rem, 2vw, 1.2rem); color: var(--text-muted); text-transform: uppercase; letter-spacing: 4px; margin-top: 10px; font-weight: 600; }
+        .weather-widget { display: inline-flex; align-items: center; gap: 10px; margin-top: 20px; padding: 8px 20px; background: rgba(255,255,255,0.05); border-radius: 30px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); font-size: 1.1rem; color: #ddd; }
+
+        /* HEADER */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; }
+        header { padding: 0 30px; height: 110px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.95), transparent); transition: 0.3s; }
+        .system-id { font-size: 0.9rem; font-weight: 300; letter-spacing: 2px; color: #888; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+        .system-id b { color: white; font-weight: 700; }
+        .system-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); }
+        .client-brand { display: flex; justify-content: center; align-items: center; height: 100%; }
+        .client-brand img { height: 85px; width: auto; transition: transform 0.3s; filter: drop-shadow(0 0 15px rgba(255,255,255,0.1)); }
+        .client-brand:hover img { transform: scale(1.05); }
+        .nav-controls { display: flex; gap: 10px; justify-content: flex-end; }
+        .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); padding: 10px 16px; border-radius: 8px; cursor: pointer; backdrop-filter: blur(5px); transition: 0.2s; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; white-space: nowrap;}
+        .nav-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
+        .nav-btn.primary { background: var(--primary); border-color: var(--primary); box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4); }
+        .nav-btn.finance { color: #fbbf24; border-color: rgba(251, 191, 36, 0.2); }
+        .nav-btn.history { color: #a78bfa; border-color: rgba(167, 139, 250, 0.3); }
+
+        /* BOARD */
+        .board-wrapper { flex: 1; padding: 20px 40px; display: flex; gap: 20px; overflow-x: auto; overflow-y: hidden; justify-content: flex-start; align-items: flex-start; scroll-behavior: smooth; }
+        .column { flex: 1; min-width: 260px; max-width: 420px; display: flex; flex-direction: column; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); height: 100%; }
+        .col-header { background: var(--bg-panel); backdrop-filter: blur(15px); padding: 15px 20px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); margin-bottom: 12px; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 20; position: relative; }
+        .col-header:hover { border-color: rgba(255,255,255,0.3); background: rgba(40, 40, 45, 0.9); }
+        .col-body { background: rgba(10, 10, 12, 0.6); border-radius: 0 0 16px 16px; overflow-y: auto; overflow-x: hidden; height: calc(100% - 70px); transition: opacity 0.4s ease; opacity: 1; padding: 8px; margin-top: -10px; padding-top: 20px; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+        .column.retracted .col-body { height: 0; opacity: 0; padding: 0; pointer-events: none; }
+        
+        /* CARD */
+        .card { background: rgba(40, 40, 45, 0.4); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer; position: relative; transition: transform 0.2s, background 0.2s; }
+        .card:hover { transform: translateY(-4px); background: rgba(60, 60, 65, 0.7); border-color: #666; }
+        .card-folio { font-family: 'Courier New', monospace; color: var(--accent); background: rgba(14, 165, 233, 0.1); padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; }
+        .card-badge { font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px; font-weight: bold; letter-spacing: 0.5px; }
+        .badge-internal { background: #3f3f46; color: white; }
+        .badge-external { background: var(--purple); color: white; box-shadow: 0 0 8px rgba(139, 92, 246, 0.4); }
+        .card-client { font-weight: 800; margin: 5px 0; color: white; font-size: 1.1rem; }
+        .card-desc { font-size: 0.85rem; color: #ccc; }
+        .card-foot { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; }
+        .card-actions { display: flex; gap: 10px; }
+        .act-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; transition: 0.2s; opacity: 0.7; }
+        .act-btn:hover { opacity: 1; transform: scale(1.1); }
+        .act-btn.nav-back { color: var(--text-muted); }
+        .act-btn.nav-next { color: var(--success); }
+
+        /* FOOTER */
+        .wj-signature { position: fixed; bottom: 20px; left: 30px; display: flex; align-items: center; gap: 12px; z-index: 50; }
+        .wj-logo-anim { width: 35px; height: auto; animation: pulse 3s infinite ease-in-out; }
+        .wj-text { font-size: 0.7rem; color: rgba(255,255,255,0.3); font-weight: 600; letter-spacing: 1px; }
+        @keyframes pulse { 0% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0.7; transform: scale(1); } }
+
+        /* MODALES */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); z-index: 100; display: none; justify-content: center; align-items: center; opacity: 0; transition: 0.3s; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-window { width: 95%; max-width: 1200px; height: 90vh; background: #121215; border: 1px solid #333; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-header { padding: 15px 25px; background: #1a1a1d; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;}
+        .editor-container { display: flex; height: 100%; overflow: hidden; }
+        .editor-left { flex: 1; padding: 25px; overflow-y: auto; }
+        .editor-right { width: 340px; background: #0f0f10; border-left: 1px solid #333; padding: 25px; display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.3); overflow-y: auto;}
+        
+        .summary-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: white; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.9rem; color: #aaa; }
+        .summary-val { color: white; font-weight: 600; }
+        .summary-actions { margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px;}
+        .btn-save { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .btn-save:hover { filter: brightness(1.1); }
+        .btn-del { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        .accordion { background: #1c1c20; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; overflow: hidden; }
+        .accordion.open { border-color: #555; }
+        .acc-head { padding: 10px 15px; cursor: pointer; display: flex; justify-content: space-between; font-weight: 700; color: #ddd; background: rgba(255,255,255,0.02); font-size: 0.9rem; }
+        .acc-body { padding: 15px; display: none; border-top: 1px solid #333; }
+        .accordion.open .acc-body { display: block; }
+        .form-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: flex-end; flex-wrap: wrap; }
+        .f-col { flex: 1; min-width: 100px; } .f-mini { width: 70px; } .f-mid { width: 120px; }
+        label { display: block; font-size: 0.65rem; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select, textarea { width: 100%; background: #080808; border: 1px solid #333; color: white; padding: 8px; border-radius: 6px; font-size: 0.9rem; resize: vertical; }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
+        .finish-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+        .finish-item { background: #080808; padding: 8px; border-radius: 6px; text-align: center; border: 1px solid #333; cursor: pointer; color: #777; transition: 0.2s; font-size: 0.8rem; }
+        .finish-item.active { background: rgba(16, 185, 129, 0.15); border-color: var(--success); color: var(--success); font-weight: bold; }
+
+        /* NUEVOS ESTILOS PARA IMAGEN Y COSTOS DINAMICOS */
+        .img-upload-box { border: 2px dashed #444; padding: 20px; text-align: center; border-radius: 10px; cursor: pointer; color: #888; transition: 0.3s; margin-bottom: 10px; background: rgba(0,0,0,0.2); display: block; }
+        .img-upload-box:hover { border-color: var(--accent); color: var(--accent); }
+        .cost-row { display: grid; grid-template-columns: 1fr 100px 30px; gap: 10px; align-items: center; margin-bottom: 8px; }
+        .cost-row input { margin: 0; }
+        .btn-icon { background: none; border: none; color: #f43f5e; cursor: pointer; font-size: 1.1rem; padding: 5px; border-radius: 5px; }
+        .btn-icon:hover { background: rgba(244, 63, 94, 0.2); }
+
+        /* HISTORIAL ESTILOS */
+        .history-controls { padding: 20px; border-bottom: 1px solid #333; display: flex; gap: 10px; align-items: center; background: #151518; }
+        .h-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid #333; background: #222; color: #aaa; cursor: pointer; font-size: 0.8rem; }
+        .h-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .history-list { flex: 1; overflow-y: auto; padding: 0; }
+        .history-row { display: grid; grid-template-columns: 80px 1fr 1fr 100px; padding: 15px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; font-size: 0.9rem; }
+        .history-row:hover { background: rgba(255,255,255,0.02); }
+        .h-folio { font-family: monospace; color: var(--accent); }
+        .h-client { font-weight: bold; color: white; }
+        .h-desc { color: #888; font-size: 0.8rem; }
+        .h-amount { color: var(--success); font-weight: bold; text-align: right; }
+        .h-total-box { padding: 20px; background: #1a1a1d; border-top: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+
+        /* RESPONSIVE */
+        @media (max-width: 1000px) {
+            header { height: auto; padding: 15px; grid-template-columns: 1fr; gap: 10px; justify-items: center; }
+            .nav-controls { justify-content: center; width: 100%; overflow-x: auto; padding-bottom: 5px; }
+            .client-brand img { height: 60px; }
+            .system-id { display: none; } 
+            .editor-container { flex-direction: column; overflow-y: auto; }
+            .editor-left { width: 100%; overflow: visible; }
+            .editor-right { width: 100%; border-left: none; border-top: 1px solid #333; height: auto; flex-shrink: 0; }
+            .modal-window { height: 100vh; max-height: 100vh; border-radius: 0; }
+            .wj-signature { bottom: 10px; left: 10px; }
+            .wj-text { display: none; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <!-- ========================================================================= -->
+            <!-- MODIFICAR AQUI: LOGO EN LA PANTALLA DE ACCESO (LOGIN)                     -->
+            <!-- Cambia el src por la ruta de tu logo de login                             -->
+            <!-- ========================================================================= -->
+            <img src="img/LOGO-WJ.png" class="login-logo" ondblclick="enableMasterMode()">
+            
+            <div class="login-title">WJ</div>
+            <div class="login-subtitle">SISTEMA DE CONTROL DE TRABAJOS</div>
+            <input type="password" id="login-pass" class="login-input" placeholder="CONTRASEÑA">
+            <button class="btn-login" onclick="attemptLogin()">INICIAR SESIÓN</button>
+            <div id="login-msg" style="margin-top:15px; color:#f43f5e; font-size:0.8rem; height:1rem;"></div>
+        </div>
+    </div>
+
+    <div id="launcher-bg">
+        <!-- ========================================================================= -->
+        <!-- MODIFICAR AQUI: LOGO DE FONDO GIGANTE (MARCA DE AGUA)                     -->
+        <!-- Cambia el src por la ruta de tu logo fantasma                             -->
+        <!-- ========================================================================= -->
+        <div class="ghost-logo"><img src="img/LOGO-DISERIMPRESION.webp" alt="Ghost Logo"></div>
+        
+        <div class="widget-clock">
+            <div class="time-display" id="clock-time">00:00</div>
+            <div class="date-display" id="clock-date">CONECTANDO...</div>
+            <div class="weather-widget" id="weather-display"><span>📍 Localizando...</span></div>
+        </div>
+    </div>
+
+    <div id="ui-layer" style="display:none;">
+        <header>
+            <div class="system-id"><div class="system-dot"></div>WJ <b>SISTEMA DE CONTROL DE TRABAJOS</b></div>
+            
+            <!-- ========================================================================= -->
+            <!-- MODIFICAR AQUI: LOGO SUPERIOR CENTRAL (DENTRO DEL SISTEMA)                -->
+            <!-- Cambia el src por la ruta de tu logo principal del header                 -->
+            <!-- ========================================================================= -->
+            <div class="client-brand"><img src="img/LOGO-DISERIMPRESION.webp" alt="Diser Impresion"></div>
+            
+            <div class="nav-controls">
+                <button class="nav-btn finance" onclick="openCaja()">💰 Caja</button> 
+                <button class="nav-btn history" onclick="openHistory()">📂 Historial</button>
+                <button class="nav-btn primary" onclick="openEditor()">+ Nueva</button>
+                <button class="nav-btn" onclick="openConfig()">⚙️ Config</button>
+                <button class="nav-btn" onclick="toggleAllCols()">🔃 Retraer</button>
+                <button class="nav-btn" onclick="location.reload()">🔒</button>
+            </div>
+        </header>
+        
+        <div class="board-wrapper" id="board-container"></div>
+        
+        <!-- ========================================================================= -->
+        <!-- MODIFICAR AQUI: LOGO FIRMA INFERIOR IZQUIERDA                             -->
+        <!-- Cambia el src por la ruta de tu pequeña firma                             -->
+        <!-- ========================================================================= -->
+        <div class="wj-signature">
+            <img src="img/LOGO-WJ.png" class="wj-logo-anim" title="System Alive">
+            <div class="wj-text">Powered by<br>WJ DIGITAL STUDIO</div>
+        </div>
+    </div>
+
+    <!-- MODAL DE EDICIÓN DE ORDENES -->
+    <div class="modal-overlay" id="editor-modal">
+        <div class="modal-window">
+            <div class="modal-header">
+                <div style="font-weight:700; font-size:1.1rem; display:flex; align-items:center; gap:10px;">📝 Orden</div>
+                <button type="button" onclick="closeModal()" style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;">✕</button>
+            </div>
+            <div class="editor-container">
+                <div class="editor-left">
+                    <div style="background:#1c1c20; padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #333;">
+                        
+                        <!-- CAMBIO 1: SE RESETEARON LOS TAMAÑOS Y SE AGREGÓ SOLO LA HORA AL LADO -->
+                        <div class="form-row" style="gap: 15px;">
+                            <div style="width: 80px;">
+                                <label>Folio</label>
+                                <input type="text" id="inp-folio" style="color:var(--accent); font-weight:bold; text-align:center;">
+                            </div>
+                            <div style="width: 130px;">
+                                <label>Fecha</label>
+                                <input type="text" id="inp-date" readonly>
+                            </div>
+                            <div>
+                                <label>Entrega (Fecha y Hora)</label>
+                                <div style="display:flex; gap:10px;">
+                                    <input type="date" id="inp-date-delivery" style="color-scheme:dark; width: 140px;">
+                                    <input type="time" id="inp-time-delivery" style="color-scheme:dark; width: 100px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="margin-bottom:0;">
+                            <div class="f-col"><label>Cliente</label><input type="text" id="inp-client" placeholder="NOMBRE CLIENTE"></div>
+                            <div class="f-mid"><label>Tel / WA</label><input type="tel" id="inp-phone"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- CONTENEDOR DE TRABAJOS DINAMICO -->
+                    <div id="jobs-container"></div>
+                    
+                    <button type="button" onclick="addNewJob()" style="width:100%; background:rgba(14, 165, 233, 0.1); border:1px dashed var(--accent); color:var(--accent); padding:12px; border-radius:10px; font-weight:bold; font-size:0.9rem; cursor:pointer; margin-bottom:20px;">
+                        + Agregar Nuevo Trabajo a esta Orden
+                    </button>
+
+                </div>
+                <div class="editor-right">
+                    <div class="summary-title">Resumen de Orden</div>
+                    
+                    <!-- RESUMEN DINAMICO -->
+                    <div id="summary-dynamic-list" style="min-height: 80px;"></div>
+                    
+                    <div style="margin: 15px 0; border-top:1px dashed #444; padding-top:15px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:0.85rem; color:#888;">Subtotal de Costos</span>
+                        <span id="disp-subtotal" style="color:#aaa; font-weight:bold; font-size:1.1rem;">$0.00</span>
+                    </div>
+
+                    <div style="margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:0.8rem; color:#888;">IVA (16%)</span>
+                        <input type="checkbox" id="check-iva" onchange="calc()" style="width:20px;">
+                    </div>
+
+                    <!-- CAMBIO 3: EL TOTAL ES MANUAL Y CALCULA MATEMÁTICAMENTE LA RESTA -->
+                    <div style="margin-bottom:15px; background:rgba(0,0,0,0.4); padding:15px; border-radius:10px; border:1px solid #333;">
+                        <label style="color:var(--success); font-weight:bold; font-size:0.8rem; letter-spacing:1px; margin-bottom:8px;">TOTAL A COBRAR</label>
+                        <div style="display:flex; align-items:center;">
+                            <span style="color:var(--success); font-size:1.8rem; font-weight:800; margin-right:5px;">$</span>
+                            <input type="number" id="inp-total" oninput="calcBalance()" placeholder="0.00" style="background:transparent; border:none; border-bottom:2px dashed #444; color:white; font-weight:800; font-size:2rem; text-align:right; width:100%; padding:0; border-radius:0;">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom:10px;">
+                        <label style="color:#888;">ANTICIPO DEJADO</label>
+                        <input type="number" id="inp-advance" oninput="calcBalance()" style="background:#222; border-color:#444; color:var(--success); font-weight:bold; font-size:1.1rem; text-align:right;">
+                    </div>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; border-top:2px solid #333; padding-top:15px;">
+                        <span style="font-weight:bold; color:white; font-size:0.9rem;">Restante a Liquidar:</span>
+                        <span id="disp-balance" style="font-size:1.4rem; font-weight:black; color:var(--primary);">$0.00</span>
+                    </div>
+                    
+                    <div class="summary-actions">
+                        <button class="btn-save" onclick="saveOrder()">💾 Guardar Orden</button>
+                        <button class="btn-save" onclick="copyOrderDetails()" id="btn-copy" style="background:var(--purple);">📋 Copiar Resumen</button>
+                        <button class="btn-del" onclick="deleteOrder()">🗑 Eliminar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE HISTORIAL -->
+    <div class="modal-overlay" id="history-modal">
+        <div class="modal-window" style="max-width:900px;">
+            <div class="modal-header">
+                <div style="font-weight:700; font-size:1.1rem;">📂 Historial de Entregas</div>
+                <button onclick="closeModal()" style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;">✕</button>
+            </div>
+            <div class="history-controls">
+                <button class="h-btn active" onclick="renderHistory('today')">Hoy</button>
+                <button class="h-btn" onclick="renderHistory('week')">Semana</button>
+                <button class="h-btn" onclick="renderHistory('all')">Todo</button>
+            </div>
+            <div class="history-list" id="history-list-container"></div>
+            <div class="h-total-box">
+                <div style="color:#888; font-size:0.9rem;">Total Entregado</div>
+                <div id="history-total-val" style="font-size:1.8rem; font-weight:800; color:white;">$0.00</div>
+            </div>
+            <div class="modal-footer" style="justify-content:flex-end; padding:15px; display: flex;">
+                 <button onclick="clearHistory()" style="background:none; border:1px solid #444; color:#666; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:0.8rem;">Vaciar Todo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CAJA -->
+    <div class="modal-overlay" id="caja-modal">
+        <div class="login-box" style="width:90%; max-width:600px; background:#18181b;">
+            <h2>💰 Corte de Caja</h2>
+            <div style="display:flex; gap:20px; justify-content:center; flex-wrap:wrap; margin:30px 0;">
+                <div style="background:#111; padding:20px; border-radius:10px; min-width:200px;">
+                    <div style="font-size:1.5rem;">💵</div>
+                    <div style="color:var(--success);">Cobrado</div>
+                    <div id="caja-cobrado" style="font-size:1.5rem; font-weight:bold;">$0.00</div>
+                </div>
+                <div style="background:#111; padding:20px; border-radius:10px; min-width:200px;">
+                    <div style="font-size:1.5rem;">📉</div>
+                    <div style="color:var(--primary);">Por Cobrar</div>
+                    <div id="caja-por-cobrar" style="font-size:1.5rem; font-weight:bold;">$0.00</div>
+                </div>
+            </div>
+            <button onclick="closeModal()" style="padding:10px 30px; border-radius:8px; border:none; background:#333; color:white; cursor:pointer;">Cerrar</button>
+        </div>
+    </div>
+    
+    <!-- MODAL DE CONFIGURACION (INTACTO) -->
+    <div class="modal-overlay" id="config-modal">
+        <div class="login-box" style="width:95%; max-width:900px; background:#18181b; text-align:left; overflow-y:auto; max-height:90vh;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2>⚙️ Panel de Configuración</h2>
+                <button onclick="closeModal()" style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;">✕</button>
+            </div>
+            
+            <div style="display:flex; gap:25px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:250px;">
+                    <label style="color:var(--accent); font-weight:bold;">Datos Generales</label>
+                    <div style="margin-top:10px;">
+                        <label>Nombre Negocio</label><input type="text" id="cfg-name" class="login-input" style="text-align:left;">
+                        <label>Contraseña Cliente</label><input type="text" id="cfg-pass" class="login-input" style="text-align:left;">
+                        <label>Folio Actual</label><input type="number" id="cfg-folio" class="login-input" style="text-align:left;">
+                    </div>
+                </div>
+                
+                <div style="flex:1; min-width:250px; display:flex; flex-direction:column; gap:20px; border-left:1px solid #333; padding-left:20px;">
+                    <div>
+                        <label style="color:var(--purple); font-weight:bold;">🚚 Directorio de Maquileros</label>
+                        <div style="display:flex; gap:5px; margin:10px 0;">
+                            <input type="text" id="cfg-new-vendor" class="login-input" style="margin:0; text-align:left; padding:8px;" placeholder="Nuevo proveedor...">
+                            <button onclick="addVendor()" style="background:var(--success); color:white; border:none; border-radius:8px; padding:0 15px; font-weight:bold; cursor:pointer;">+</button>
+                        </div>
+                        <div id="cfg-vendors-list" style="background:#000; border:1px solid #333; border-radius:8px; padding:10px; max-height:140px; overflow-y:auto;"></div>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align:center; margin-top:30px; border-top:1px solid #333; padding-top:20px;">
+                <button onclick="saveConfig()" style="background:var(--accent); color:white; border:none; padding:12px 40px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:1rem;">Guardar Todos los Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_jFR8Be7LFDp6eZ94jJSsC9Rnme3upGs",
+            authDomain: "wj-os-diserimpresion.firebaseapp.com",
+            databaseURL: "https://wj-os-diserimpresion-default-rtdb.firebaseio.com",
+            projectId: "wj-os-diserimpresion",
+            storageBucket: "wj-os-diserimpresion.firebasestorage.app",
+            messagingSenderId: "1013243206959",
+            appId: "1:1013243206959:web:742f69aae50fc91d5ad5da"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const dbRef = ref(database, 'wjos_db_diser'); 
+
+        /* ========================================================================= */
+        /* MODIFICAR AQUI: DATOS INICIALES                                           */
+        /* ========================================================================= */
+        let localDB = { 
+            orders: [], 
+            history: [], 
+            config: { 
+                name: 'DISER IMPRESION', 
+                pass: 'DISER2026', 
+                folio: 0, 
+                vendors: ["Lonas y Etiquetas", "Conexión", "Girokristal", "Impreneth"] 
+            } 
+        };
+        /* ========================================================================= */
+        
+        /* ========================================================================= */
+        /* MODIFICAR AQUI: CONTRASEÑA MAESTRA Y POR DEFECTO                          */
+        /* ========================================================================= */
+        const MASTER_KEY = "WJ#ROOT_OS_26";
+        const FALLBACK_PASSWORD = "DISER2026";
+        /* ========================================================================= */
+
+        let initialLoad = true;
+        let isUserLoggedIn = false;
+        let currentJobs = [];
+        
+        const getNewJobTemplate = (id) => ({
+            id: id,
+            desc: '',
+            vendor: '',
+            costs: [
+                { id: 1, name: 'Papel', price: 0, removable: false },
+                { id: 2, name: 'Tiro', price: 0, removable: false },
+                { id: 3, name: 'Placa', price: 0, removable: false },
+                { id: 4, name: 'Negativo', price: 0, removable: false },
+                { id: 5, name: 'Color de tinta', price: 0, removable: false, meta: { color1: '', color2: '', color3: '' } },
+                { id: 6, name: 'Folio', price: 0, removable: false, meta: { start: '', end: '' } },
+                { id: 7, name: 'Terminado', price: 0, removable: false },
+                { id: 8, name: 'Diseño', price: 0, removable: false }
+            ]
+        });
+
+        onValue(dbRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                localDB = data;
+                if(!localDB.orders) localDB.orders = [];
+                if(!localDB.history) localDB.history = [];
+                if(!localDB.config) localDB.config = { name: 'DISER IMPRESION', pass: FALLBACK_PASSWORD, folio: 0, vendors: [] };
+                if(!localDB.config.vendors) localDB.config.vendors = ["Lonas y Etiquetas", "Conexión", "Girokristal", "Impreneth"];
+            } else { saveToCloud(); }
+            
+            updateClock();
+            
+            if(isUserLoggedIn) {
+                renderBoard();
+                if(document.getElementById('history-modal').classList.contains('active')) renderHistory('today');
+            } else {
+                renderBoard();
+                document.getElementById('login-screen').style.display = 'flex';
+            }
+
+            if(initialLoad) { initWeather(); initialLoad = false; }
+        }, (error) => { console.error("Firebase Error:", error); });
+
+        function saveToCloud() { set(dbRef, localDB).catch((error) => console.error(error)); }
+
+        window.attemptLogin = function() { 
+            const input = document.getElementById('login-pass').value; 
+            const msg = document.getElementById('login-msg'); 
+            
+            if (input === localDB.config.pass || input === MASTER_KEY || input === FALLBACK_PASSWORD) { 
+                isUserLoggedIn = true;
+                document.getElementById('login-screen').style.opacity = '0'; 
+                document.getElementById('login-screen').style.transform = 'scale(1.1)'; 
+                setTimeout(() => { 
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('ui-layer').style.display = 'flex'; 
+                }, 500); 
+            } else { 
+                msg.textContent = "ACCESO DENEGADO"; 
+                document.getElementById('login-pass').style.borderColor = "red"; 
+            } 
+        };
+
+        window.enableMasterMode = function() { 
+            const inp = document.getElementById('login-pass'); 
+            inp.classList.add('master-mode'); 
+            inp.placeholder = "MASTER KEY REQUIRED"; 
+            inp.focus(); 
+        };
+
+        window.initWeather = function() {
+            if(navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude; const lon = position.coords.longitude;
+                    let city = "Ubicación";
+                    try { const cityRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`); const cityData = await cityRes.json(); city = cityData.address.city || cityData.address.town || cityData.address.village || "Mi Ubicación"; } catch(e) {}
+                    try { const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`); const data = await res.json(); const temp = Math.round(data.current_weather.temperature); const code = data.current_weather.weathercode; let icon = "🌤"; if(code < 3) icon = "☀️"; else if(code < 50) icon = "☁️"; else icon = "🌧"; document.getElementById('weather-display').innerHTML = `<span>${icon} ${city}</span> <span style="opacity:0.3">|</span> <span>${temp}°C</span>`; } catch (e) { document.getElementById('weather-display').innerHTML = "Error Clima"; }
+                }, (error) => { fetchWeatherDefault(); });
+            } else { fetchWeatherDefault(); }
+        }
+
+        async function fetchWeatherDefault() { 
+            try { const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=20.62&longitude=-103.24&current_weather=true'); const data = await res.json(); const temp = Math.round(data.current_weather.temperature); document.getElementById('weather-display').innerHTML = `<span>🌤 Tonalá</span> <span style="opacity:0.3">|</span> <span>${temp}°C</span>`; } catch (e) { document.getElementById('weather-display').innerHTML = "Clima no disponible"; } 
+        }
+
+        window.updateClock = function() { 
+            const now = new Date(); 
+            document.getElementById('clock-time').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
+            document.getElementById('clock-date').textContent = now.toLocaleDateString('es-ES', {weekday: 'long', day: 'numeric', month: 'long'}); 
+        };
+
+        const columns = [
+            {id:'pending', title:'🔴 Diseño / Pendiente', color:'#e11d48'},
+            {id:'press', title:'🟡 En Prensa', color:'#f59e0b'},
+            {id:'maquila', title:'🚚 En Maquila', color:'#8b5cf6'},
+            {id:'finish', title:'🔵 Acabados', color:'#0ea5e9'},
+            {id:'ready', title:'🟢 Listo / Entregar', color:'#10b981'}
+        ];
+        let collapsedCols = { pending: false, press: false, maquila: false, finish: false, ready: false };
+
+        window.toggleCol = function(id) { collapsedCols[id] = !collapsedCols[id]; renderBoard(); };
+        window.toggleAllCols = function() { const state = !Object.values(collapsedCols).every(v => v === true); Object.keys(collapsedCols).forEach(k => collapsedCols[k] = state); renderBoard(); };
+
+        window.renderBoard = function() { 
+            const container = document.getElementById('board-container'); container.innerHTML = ''; 
+            columns.forEach(col => { 
+                const isCollapsed = collapsedCols[col.id]; 
+                const orders = (localDB.orders || []).filter(o => o.status === col.id); 
+                const div = document.createElement('div'); 
+                div.className = `column ${isCollapsed ? 'retracted' : ''}`; 
+                div.innerHTML = `<div class="col-header" onclick="toggleCol('${col.id}')"><div style="display:flex; gap:10px; align-items:center;"><div style="width:10px; height:10px; border-radius:50%; background:${col.color}"></div><span style="font-weight:600;">${col.title}</span></div><div style="background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:10px; font-size:0.8rem;">${orders.length}</div></div><div class="col-body">${orders.map(o => getCardHTML(o)).join('')}</div>`; 
+                container.appendChild(div); 
+            }); 
+        };
+
+        function getCardHTML(o) { 
+            const bal = o.total - o.advance; const balTag = bal > 0 ? `<span style="color:var(--primary)">Debe: $${bal.toFixed(2)}</span>` : `<span style="color:var(--success)">PAGADO</span>`; 
+            let badgeHTML = ''; if(o.vendor) { badgeHTML = `<div class="card-badge badge-external">🚚 ${o.vendor}</div>`; } else { badgeHTML = `<div class="card-badge badge-internal">🏠 Interno</div>`; }
+            
+            let actBtn = '';
+            if (o.status === 'ready') {
+                actBtn = `<div class="card-actions">
+                            <button class="act-btn nav-back" onclick="event.stopPropagation(); moveOrder(${o.id}, 'back')" title="Regresar">⬅</button>
+                            <button class="act-btn" onclick="event.stopPropagation(); sendWA(${o.id})" title="Enviar WA">💬</button>
+                            <button class="act-btn" onclick="event.stopPropagation(); deliverOrder(${o.id})" title="Entregar" style="color:var(--success);">✅</button>
+                         </div>`;
+            } else if (o.status === 'pending') {
+                actBtn = `<button class="act-btn nav-next" onclick="event.stopPropagation(); moveOrder(${o.id}, 'forward')" title="Avanzar">➡</button>`;
+            } else {
+                actBtn = `<div class="card-actions">
+                            <button class="act-btn nav-back" onclick="event.stopPropagation(); moveOrder(${o.id}, 'back')" title="Regresar">⬅</button>
+                            <button class="act-btn nav-next" onclick="event.stopPropagation(); moveOrder(${o.id}, 'forward')" title="Avanzar">➡</button>
+                         </div>`;
+            }
+            return `<div class="card" onclick="openEditor(${o.id})"><div style="display:flex; justify-content:space-between; align-items:flex-start;">${badgeHTML}<span class="card-folio">#${o.folio}</span></div><div class="card-client">${o.client}</div><div class="card-desc">${o.desc || o.title}</div><div class="card-foot"><span style="font-size:0.8rem; font-weight:bold;">${balTag}</span>${actBtn}</div></div>`; 
+        }
+
+        window.moveOrder = function(id, dir) { 
+            const o = localDB.orders.find(x => x.id === id); 
+            let next = null;
+            
+            if (dir === 'forward') {
+                if(o.status === 'pending') next = 'press';
+                else if(o.status === 'press') next = o.vendor ? 'maquila' : 'finish';
+                else if(o.status === 'maquila') next = 'finish';
+                else if(o.status === 'finish') next = 'ready';
+            } else {
+                if(o.status === 'ready') next = 'finish';
+                else if(o.status === 'finish') next = o.vendor ? 'maquila' : 'press';
+                else if(o.status === 'maquila') next = 'press';
+                else if(o.status === 'press') next = 'pending';
+            }
+            
+            if(next) { o.status = next; saveToCloud(); } 
+        };
+
+        window.deliverOrder = function(id) { if(!confirm("¿Confirmar entrega y mover al historial?")) return; const idx = localDB.orders.findIndex(x => x.id === id); if(idx > -1) { const order = localDB.orders[idx]; order.deliveredDate = Date.now(); if(!localDB.history) localDB.history = []; localDB.history.push(order); localDB.orders.splice(idx, 1); saveToCloud(); } };
+        window.openHistory = function() { document.getElementById('history-modal').classList.add('active'); renderHistory('today'); };
+        window.renderHistory = function(filter) { document.querySelectorAll('.h-btn').forEach(b => b.classList.remove('active')); document.querySelector(`.h-btn[onclick="renderHistory('${filter}')"]`).classList.add('active'); const container = document.getElementById('history-list-container'); container.innerHTML = ''; let total = 0; const now = new Date(); const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(); const startOfWeek = startOfDay - (now.getDay() * 24 * 60 * 60 * 1000); const list = (localDB.history || []).filter(h => { if(filter === 'today') return h.deliveredDate >= startOfDay; if(filter === 'week') return h.deliveredDate >= startOfWeek; return true; }).sort((a,b) => b.deliveredDate - a.deliveredDate); list.forEach(h => { total += h.total; container.innerHTML += `<div class="history-row"><div class="h-folio">#${h.folio}</div><div class="h-client">${h.client} <div class="h-desc">${h.desc}</div></div><div style="color:#666; font-size:0.8rem;">${new Date(h.deliveredDate).toLocaleDateString()}</div><div class="h-amount">$${h.total.toFixed(2)}</div></div>`; }); document.getElementById('history-total-val').textContent = '$' + total.toFixed(2); };
+        window.clearHistory = function() { if(confirm("¿Borrar historial?")) { localDB.history = []; saveToCloud(); renderHistory('all'); } };
+
+        function updateVendorSelect() { const select = document.getElementById('inp-vendor'); const currentVal = select.value; select.innerHTML = '<option value="">🏠 Producción Interna (Local)</option>'; (localDB.config.vendors || []).forEach(v => { select.innerHTML += `<option value="${v}">🚚 ${v}</option>`; }); select.value = currentVal; }
+
+        window.renderJobs = function() {
+            const container = document.getElementById('jobs-container');
+            container.innerHTML = '';
+            
+            const vendorOptions = '<option value="">🏠 Producción Interna (Local)</option>' + 
+                                  (localDB.config.vendors || []).map(v => `<option value="${v}">🚚 ${v}</option>`).join('');
+
+            currentJobs.forEach((job, jIdx) => {
+                const jobDiv = document.createElement('div');
+                jobDiv.style.background = '#1c1c20';
+                jobDiv.style.padding = '15px';
+                jobDiv.style.borderRadius = '10px';
+                jobDiv.style.marginBottom = '15px';
+                jobDiv.style.border = '1px solid #333';
+                
+                let headerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:10px;">
+                    <h4 style="margin:0; color:var(--purple);">📦 Trabajo #${jIdx + 1}</h4>
+                    ${currentJobs.length > 1 ? `<button type="button" onclick="removeJob(${jIdx})" style="background:var(--primary); color:white; border:none; border-radius:4px; padding:3px 8px; font-size:0.8rem; cursor:pointer;">Eliminar</button>` : ''}
+                </div>`;
+
+                let basicFieldsHTML = `
+                    <div class="form-row" style="margin-bottom:10px;">
+                        <div class="f-col"><label>Descripción del Trabajo</label>
+                        <input type="text" value="${job.desc}" oninput="updateJobDesc(${jIdx}, this.value)" placeholder="Ej. 1000 Tarjetas de Presentación"></div>
+                    </div>
+                    <div class="form-row" style="margin-bottom:15px; border-bottom:1px dashed #333; padding-bottom:15px;">
+                        <div class="f-col">
+                            <label>Tipo de Producción (Asignar a):</label>
+                            <div style="display:flex; gap:10px;">
+                                <select style="flex:1;" onchange="updateJobVendor(${jIdx}, this.value)">
+                                    ${vendorOptions}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <label style="color:var(--success); font-weight:bold; margin:0;">💰 Detalle de Costos</label>
+                    </div>
+                `;
+
+                jobDiv.innerHTML = headerHTML + basicFieldsHTML;
+                jobDiv.querySelector('select').value = job.vendor; 
+                
+                const costsContainer = document.createElement('div');
+                
+                job.costs.forEach((c, cIdx) => {
+                    const rowWrap = document.createElement('div');
+                    rowWrap.style.marginBottom = "8px";
+                    
+                    const row = document.createElement('div');
+                    const nameReadonly = c.removable === false ? 'readonly style="background:transparent; border:none; color:#ddd; font-weight:bold; padding-left:0;"' : '';
+                    
+                    // CAMBIO 2: ESTRUCTURA IDÉNTICA A LA IMAGEN 2 (1 solo renglón abajo para los inputs)
+                    if (c.name === 'Color de tinta') {
+                        row.style.display = 'flex';
+                        row.style.alignItems = 'center';
+                        row.style.gap = '15px';
+                        row.style.padding = '5px 0 10px 0';
+                        
+                        row.innerHTML = `
+                            <div style="display:flex; align-items:center; min-width: 100px;">
+                                <span style="font-size:0.85rem; font-weight:bold; color:#fff; white-space:nowrap;">${c.name}</span>
+                            </div>
+                            <div style="display:flex; gap:10px; flex:1;">
+                                <input type="text" value="${c.meta?.color1 || ''}" oninput="updateCostMeta(${jIdx}, ${cIdx}, 'color1', this.value)" placeholder="Color 1" style="flex:1; padding:10px; background:#0a0a0c; border:1px solid #222; border-radius:6px; font-size:0.9rem; color:white;">
+                                <input type="text" value="${c.meta?.color2 || ''}" oninput="updateCostMeta(${jIdx}, ${cIdx}, 'color2', this.value)" placeholder="Color 2" style="flex:1; padding:10px; background:#0a0a0c; border:1px solid #222; border-radius:6px; font-size:0.9rem; color:white;">
+                                <input type="text" value="${c.meta?.color3 || ''}" oninput="updateCostMeta(${jIdx}, ${cIdx}, 'color3', this.value)" placeholder="Color 3" style="flex:1; padding:10px; background:#0a0a0c; border:1px solid #222; border-radius:6px; font-size:0.9rem; color:white;">
+                            </div>
+                            ${c.removable !== false ? `<button type="button" class="btn-icon" onclick="removeCostConcept(${jIdx}, ${cIdx})" title="Eliminar">🗑</button>` : ''}
+                        `;
+                    } else if (c.name === 'Folio') {
+                        row.style.display = 'flex';
+                        row.style.gap = '5px';
+                        row.style.alignItems = 'center';
+                        row.innerHTML = `
+                            <input type="text" value="${c.name}" oninput="updateCostName(${jIdx}, ${cIdx}, this.value)" placeholder="Concepto" ${nameReadonly} style="width:50px; padding-left:0; font-size:0.8rem; flex-shrink:0;">
+                            <input type="text" value="${c.meta?.start || ''}" oninput="updateCostMeta(${jIdx}, ${cIdx}, 'start', this.value)" placeholder="De" style="flex:1; min-width:55px; text-align:center; padding:6px; background:rgba(0,0,0,0.3); border:1px dashed #555; font-size:0.8rem;" maxlength="7">
+                            <span style="color:#555; flex-shrink:0;">-</span>
+                            <input type="text" value="${c.meta?.end || ''}" oninput="updateCostMeta(${jIdx}, ${cIdx}, 'end', this.value)" placeholder="A" style="flex:1; min-width:55px; text-align:center; padding:6px; background:rgba(0,0,0,0.3); border:1px dashed #555; font-size:0.8rem;" maxlength="7">
+                            <input type="number" min="0" value="${c.price || ''}" oninput="updateCostPrice(${jIdx}, ${cIdx}, this.value)" placeholder="0.00" style="width:70px; text-align:right; font-weight:bold; color:var(--accent); flex-shrink:0;">
+                            ${c.removable !== false ? `<button type="button" class="btn-icon" onclick="removeCostConcept(${jIdx}, ${cIdx})" title="Eliminar" style="flex-shrink:0;">🗑</button>` : '<div style="width:30px; flex-shrink:0;"></div>'}
+                        `;
+                    } else {
+                        row.className = 'cost-row';
+                        row.innerHTML = `
+                            <input type="text" value="${c.name}" oninput="updateCostName(${jIdx}, ${cIdx}, this.value)" onfocus="if(this.value==='Nuevo Concepto') { this.value=''; updateCostName(${jIdx}, ${cIdx}, ''); }" placeholder="Concepto" ${nameReadonly}>
+                            <input type="number" min="0" value="${c.price || ''}" oninput="updateCostPrice(${jIdx}, ${cIdx}, this.value)" placeholder="0.00" style="text-align:right; font-weight:bold; color:var(--accent);">
+                            ${c.removable !== false ? `<button type="button" class="btn-icon" onclick="removeCostConcept(${jIdx}, ${cIdx})" title="Eliminar">🗑</button>` : '<div style="width:30px;"></div>'}
+                        `;
+                    }
+                    
+                    rowWrap.appendChild(row);
+                    costsContainer.appendChild(rowWrap);
+                });
+                
+                jobDiv.appendChild(costsContainer);
+                
+                const addBtn = document.createElement('button');
+                addBtn.type = "button";
+                addBtn.style.cssText = "background:rgba(16, 185, 129, 0.15); color:var(--success); border:1px solid var(--success); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.75rem; margin-top:10px; font-weight:bold;";
+                addBtn.innerText = "+ Agregar concepto extra";
+                addBtn.onclick = () => addCostConcept(jIdx);
+                
+                jobDiv.appendChild(addBtn);
+
+                // TOTAL INDIVIDUAL DEL TRABAJO
+                let currentJobSum = 0;
+                job.costs.forEach(c => currentJobSum += (c.price || 0));
+
+                const totalDiv = document.createElement('div');
+                totalDiv.style.cssText = "display:flex; justify-content:flex-end; align-items:center; margin-top:15px; border-top:1px dashed #333; padding-top:15px;";
+                totalDiv.innerHTML = `
+                    <span style="color:var(--accent); font-size:0.85rem; font-weight:bold; margin-right:10px; text-transform:uppercase;">Total de este trabajo:</span>
+                    <span style="color:var(--accent); font-weight:bold; margin-right:5px; font-size:1.1rem;">$</span>
+                    <input type="number" value="${job.jobTotal !== undefined ? job.jobTotal : ''}" oninput="updateJobTotal(${jIdx}, this.value)" placeholder="${currentJobSum.toFixed(2)}" style="width:120px; text-align:right; font-weight:bold; font-size:1.1rem; background:rgba(0,0,0,0.5); border:1px solid var(--accent); color:white; border-radius:6px; padding:8px;">
+                `;
+                jobDiv.appendChild(totalDiv);
+
+                container.appendChild(jobDiv);
+            });
+
+            calc();
+        };
+
+        window.addNewJob = function() {
+            const newId = currentJobs.length > 0 ? Math.max(...currentJobs.map(j => j.id)) + 1 : 1;
+            currentJobs.push(getNewJobTemplate(newId));
+            renderJobs();
+        };
+
+        window.removeJob = function(jIdx) {
+            if(confirm('¿Eliminar este trabajo?')) {
+                currentJobs.splice(jIdx, 1);
+                renderJobs();
+            }
+        };
+
+        window.updateJobDesc = function(jIdx, val) { currentJobs[jIdx].desc = val; };
+        window.updateJobVendor = function(jIdx, val) { currentJobs[jIdx].vendor = val; };
+        
+        window.updateCostMeta = function(jIdx, cIdx, key, val) {
+            if(!currentJobs[jIdx].costs[cIdx].meta) currentJobs[jIdx].costs[cIdx].meta = {};
+            currentJobs[jIdx].costs[cIdx].meta[key] = val;
+        };
+
+        window.updateCostName = function(jIdx, cIdx, val) { currentJobs[jIdx].costs[cIdx].name = val; };
+        window.updateCostPrice = function(jIdx, cIdx, val) { currentJobs[jIdx].costs[cIdx].price = parseFloat(val) || 0; calc(); };
+        window.updateJobTotal = function(jIdx, val) { currentJobs[jIdx].jobTotal = val; calc(); };
+        
+        window.addCostConcept = function(jIdx) {
+            const jobCosts = currentJobs[jIdx].costs;
+            const newId = jobCosts.length > 0 ? Math.max(...jobCosts.map(c => c.id)) + 1 : 1;
+            jobCosts.push({ id: newId, name: 'Nuevo Concepto', price: 0, removable: true });
+            renderJobs();
+        };
+        window.removeCostConcept = function(jIdx, cIdx) {
+            currentJobs[jIdx].costs.splice(cIdx, 1);
+            renderJobs();
+        };
+
+        let curId = null;
+        window.openEditor = function(id=null) {
+            curId = id; 
+            document.getElementById('editor-modal').classList.add('active'); 
+            
+            document.querySelectorAll('.editor-left input:not([type="checkbox"]), .editor-left textarea, .editor-right input:not([type="checkbox"])').forEach(i => i.value=''); 
+            document.getElementById('check-iva').checked = false; 
+            
+            document.getElementById('inp-total').dataset.autoTotal = '';
+
+            if(id) {
+                let o = localDB.orders.find(x => x.id === id) || localDB.history.find(x => x.id === id);
+                if(o) {
+                    const s = (eid, val) => { const el = document.getElementById(eid); if(el) el.value = val || ''; };
+                    s('inp-client', o.client); s('inp-phone', o.phone); s('inp-folio', o.folio); 
+                    s('inp-date', o.date); s('inp-date-delivery', o.dateDelivery); 
+                    s('inp-time-delivery', o.timeDelivery); 
+                    
+                    document.getElementById('check-iva').checked = o.hasIVA; 
+                    s('inp-advance', o.advance);
+                    document.getElementById('inp-total').value = o.total ? o.total.toFixed(2) : '';
+
+                    if (o.jobs) {
+                        currentJobs = JSON.parse(JSON.stringify(o.jobs));
+                    } else {
+                        currentJobs = [{
+                            id: 1,
+                            desc: o.desc || '',
+                            vendor: o.vendor || '',
+                            costs: o.costs ? JSON.parse(JSON.stringify(o.costs)) : getNewJobTemplate(1).costs
+                        }];
+                    }
+                }
+            } else {
+                let nf = (localDB.config.folio || 0) + 1; if(nf > 1000) nf = 1; 
+                document.getElementById('inp-folio').value = nf.toString().padStart(4,'0'); 
+                document.getElementById('inp-date').value = new Date().toLocaleDateString(); 
+                
+                currentJobs = [getNewJobTemplate(1)];
+            }
+            renderJobs(); 
+            calcBalance(); 
+        };
+
+        window.copyOrderDetails = function() {
+            const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+            
+            let text = `*ORDEN DE TRABAJO*\n`;
+            text += `Folio: #${val('inp-folio') || 'S/N'}\n`;
+            text += `Fecha de Orden: ${val('inp-date') || new Date().toLocaleDateString()}\n`;
+            
+            let deliveryDateStr = val('inp-date-delivery') || 'N/A';
+            if (val('inp-time-delivery')) deliveryDateStr += ` a las ${val('inp-time-delivery')}`;
+            text += `Fecha de Entrega: ${deliveryDateStr}\n`;
+            
+            text += `Cliente: ${val('inp-client') || 'N/A'}\n`;
+            text += `------------------------\n`;
+            
+            currentJobs.forEach((job, jIdx) => {
+                if (currentJobs.length > 1) {
+                    text += `\n*TRABAJO #${jIdx + 1}*\n`;
+                }
+                text += `Desc: ${job.desc || 'N/A'}\n`;
+                if (job.vendor) text += `Maquilero: ${job.vendor}\n`;
+                
+                let jobSum = 0;
+                let hasCosts = false;
+                job.costs.forEach(c => {
+                    jobSum += c.price || 0;
+                    if(c.price > 0 || c.name === 'Folio' || c.name === 'Color de tinta') {
+                        hasCosts = true;
+                        let line = `- ${c.name}`;
+                        if (c.name === 'Color de tinta') {
+                            const colors = [c.meta?.color1, c.meta?.color2, c.meta?.color3].filter(Boolean).join(', ');
+                            line += `: ${colors || '-'}`;
+                        } else if (c.name === 'Folio') {
+                            line += `: ${c.meta?.start || ''} al ${c.meta?.end || ''}`;
+                            if (c.price > 0) line += ` ($${c.price.toFixed(2)})`;
+                        } else {
+                            line += `: $${(c.price||0).toFixed(2)}`;
+                        }
+                        text += line + `\n`;
+                    }
+                });
+                
+                let finalJobTotal = (job.jobTotal !== undefined && job.jobTotal !== '') ? parseFloat(job.jobTotal) : jobSum;
+                if (hasCosts || finalJobTotal > 0) {
+                    text += `*Total Trabajo: $${finalJobTotal.toFixed(2)}*\n`;
+                }
+            });
+            
+            text += `------------------------\n`;
+            if(document.getElementById('check-iva').checked) {
+                text += `IVA (16%): Incluido\n`;
+            }
+            text += `Total: $${parseFloat(val('inp-total')||0).toFixed(2)}\n`;
+            text += `Anticipo: $${parseFloat(val('inp-advance')||0).toFixed(2)}\n`;
+            text += `*Resta a Liquidar: ${document.getElementById('disp-balance').textContent}*\n`;
+
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const btn = document.getElementById('btn-copy');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = "✅ ¡Copiado a Google Keep!";
+                btn.style.background = "var(--success)";
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = "var(--purple)";
+                }, 2000);
+            } catch (err) {
+                console.error('Error al copiar', err);
+            }
+            document.body.removeChild(textArea);
+        };
+
+        window.calc = function() { 
+            let sub = 0;
+            const summaryList = document.getElementById('summary-dynamic-list');
+            summaryList.innerHTML = '';
+
+            currentJobs.forEach((job, jIdx) => {
+                if (currentJobs.length > 1) {
+                    summaryList.innerHTML += `<div style="font-size:0.75rem; color:var(--purple); font-weight:bold; margin-top:8px; border-bottom:1px solid #333; padding-bottom:3px;">Trabajo #${jIdx + 1}</div>`;
+                }
+                
+                let jobCostSum = 0;
+                job.costs.forEach(c => {
+                    if(c.price > 0) {
+                        jobCostSum += c.price;
+                        summaryList.innerHTML += `<div class="summary-row" style="margin-bottom:4px;"><span>${c.name}</span><span class="summary-val">$${c.price.toFixed(2)}</span></div>`;
+                    }
+                });
+
+                let finalJobTotal = (job.jobTotal !== undefined && job.jobTotal !== '') ? parseFloat(job.jobTotal) : jobCostSum;
+                sub += finalJobTotal;
+
+                if (job.jobTotal !== undefined && job.jobTotal !== '') {
+                    summaryList.innerHTML += `<div class="summary-row" style="margin-bottom:4px; color:var(--accent);"><span>↳ Total Asignado</span><span class="summary-val">$${finalJobTotal.toFixed(2)}</span></div>`;
+                }
+            });
+
+            document.getElementById('disp-subtotal').textContent = '$' + sub.toFixed(2);
+
+            let iva = document.getElementById('check-iva').checked ? sub * 0.16 : 0; 
+            let totalSugerido = sub + iva; 
+            
+            let prevAutoTotal = document.getElementById('inp-total').dataset.autoTotal || '';
+            let currentInputTotal = document.getElementById('inp-total').value;
+            
+            if (currentInputTotal === '' || currentInputTotal === prevAutoTotal || parseFloat(currentInputTotal) === parseFloat(prevAutoTotal)) {
+                if (totalSugerido > 0) {
+                    document.getElementById('inp-total').value = totalSugerido.toFixed(2);
+                } else {
+                    document.getElementById('inp-total').value = '';
+                }
+                document.getElementById('inp-total').dataset.autoTotal = totalSugerido > 0 ? totalSugerido.toFixed(2) : '';
+            }
+
+            calcBalance();
+        };
+
+        window.calcBalance = function() {
+            let total = parseFloat(document.getElementById('inp-total').value) || 0; 
+            let adv = parseFloat(document.getElementById('inp-advance').value) || 0; 
+            let bal = total - adv; 
+            
+            document.getElementById('disp-balance').textContent = '$'+bal.toFixed(2); 
+            document.getElementById('disp-balance').style.color = bal > 0 ? '#e11d48' : '#10b981'; 
+        };
+
+        window.saveOrder = function() {
+            const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; }; 
+            if(!val('inp-client')) return alert('Falta Cliente');
+            
+            const order = { 
+                id: curId || Date.now(), 
+                client: val('inp-client'), 
+                phone: val('inp-phone'), 
+                folio: val('inp-folio'), 
+                date: val('inp-date'), 
+                dateDelivery: val('inp-date-delivery'), 
+                timeDelivery: val('inp-time-delivery'), 
+                
+                desc: currentJobs.map(j => j.desc).filter(Boolean).join(' | '),
+                vendor: currentJobs[0]?.vendor || '',
+                jobs: currentJobs,
+                
+                hasIVA: document.getElementById('check-iva').checked, 
+                advance: parseFloat(val('inp-advance')) || 0, 
+                total: parseFloat(val('inp-total')) || 0, 
+                status: curId ? (localDB.orders.find(x => x.id === curId)?.status || 'pending') : 'pending' 
+            };
+            
+            const activeIdx = localDB.orders.findIndex(x => x.id === curId);
+            if(activeIdx > -1 || !curId) { 
+                if(curId) localDB.orders[activeIdx] = order; 
+                else { localDB.orders.push(order); localDB.config.folio = parseInt(order.folio); } 
+                saveToCloud(); 
+                closeModal(); 
+            } else { alert("Orden archivada/no encontrada."); }
+        };
+
+        window.deleteOrder = function() { if(confirm('¿Eliminar?')) { localDB.orders = localDB.orders.filter(x => x.id !== curId); saveToCloud(); closeModal(); } };
+        window.openCaja = function() { document.getElementById('caja-modal').classList.add('active'); let c = 0, p = 0; localDB.orders.forEach(o => { c += parseFloat(o.advance||0); let b = o.total - o.advance; if(b>0) p+=b; }); document.getElementById('caja-cobrado').textContent = '$'+c.toFixed(2); document.getElementById('caja-por-cobrar').textContent = '$'+p.toFixed(2); };
+        
+        window.openConfig = function() { document.getElementById('config-modal').classList.add('active'); document.getElementById('cfg-name').value = localDB.config.name; document.getElementById('cfg-folio').value = localDB.config.folio; document.getElementById('cfg-pass').value = localDB.config.pass; renderConfigVendors(); };
+        window.renderConfigVendors = function() { const list = document.getElementById('cfg-vendors-list'); if(!localDB.config.vendors || localDB.config.vendors.length === 0) { list.innerHTML = '<div style="color:#666; font-size:0.8rem; text-align:center;">No hay proveedores</div>'; return; } list.innerHTML = localDB.config.vendors.map((v, i) => `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #222; padding:8px 0;"><span style="font-size:0.9rem; color:#ddd;">🚚 ${v}</span><button onclick="removeVendor(${i})" style="background:var(--primary); border:none; color:white; border-radius:4px; padding:3px 8px; cursor:pointer; font-weight:bold;">✕</button></div>`).join(''); };
+        window.addVendor = function() { const v = document.getElementById('cfg-new-vendor').value.trim(); if(v) { if(!localDB.config.vendors) localDB.config.vendors = []; localDB.config.vendors.push(v); document.getElementById('cfg-new-vendor').value = ''; renderConfigVendors(); saveToCloud(); } };
+        window.removeVendor = function(i) { if(confirm('¿Borrar a este maquilero?')) { localDB.config.vendors.splice(i, 1); renderConfigVendors(); saveToCloud(); } };
+        window.saveConfig = function() { localDB.config.name = document.getElementById('cfg-name').value; localDB.config.folio = parseInt(document.getElementById('cfg-folio').value); localDB.config.pass = document.getElementById('cfg-pass').value; saveToCloud(); closeModal(); };
+        window.sendWA = function(id) { const o = localDB.orders.find(x => x.id === id); const bal = o.total - o.advance; let txt = `Hola ${o.client}, te saludamos de ${localDB.config.name}.\nTu pedido "${o.desc||o.title}" (#${o.folio}) está LISTO.\nSaldo a liquidar: $${bal.toFixed(2)}${o.hasIVA?' (IVA Inc.)':''}.`; window.open(`https://wa.me/521${o.phone}?text=${encodeURIComponent(txt)}`); };
+        window.closeModal = function() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active')); };
+        window.toggleAcc = function(h) { h.parentElement.classList.toggle('open'); };
+        
+        setInterval(updateClock, 1000); updateClock();
+        document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeModal(); });
+        document.getElementById('login-pass').addEventListener('keypress', (e) => { if(e.key==='Enter') attemptLogin(); });
+
+    </script>
+</body>
+</html>
